@@ -14,33 +14,55 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ── Mega menu positioning ──────────────────────── */
-  // Position mega menus below the nav row
-  const hnItems = document.querySelectorAll('.hn-item');
-  const headerNav = document.getElementById('header-nav');
-
   const positionMegaMenus = () => {
-    if (!headerNav) return;
-    const navBottom = headerNav.getBoundingClientRect().bottom + window.scrollY;
+    if (!siteHeader) return;
+    const bottom = siteHeader.getBoundingClientRect().bottom;
     document.querySelectorAll('.mega-menu').forEach(menu => {
-      menu.style.top = (headerNav.getBoundingClientRect().bottom) + 'px';
+      menu.style.top = bottom + 'px';
     });
   };
-
   positionMegaMenus();
   window.addEventListener('scroll', positionMegaMenus, { passive: true });
   window.addEventListener('resize', positionMegaMenus);
 
-  /* ── Active nav item highlight ──────────────────── */
-  hnItems.forEach(item => {
-    item.addEventListener('mouseenter', () => item.classList.add('active'));
-    item.addEventListener('mouseleave', () => item.classList.remove('active'));
+  /* ── Collections mega menu image preview ────────── */
+  document.querySelectorAll('.mega-link[data-preview]').forEach(link => {
+    link.addEventListener('mouseenter', () => {
+      const img = document.getElementById('mega-preview-img');
+      const discoverLink = document.getElementById('mega-discover-link');
+      if (img) img.src = link.dataset.preview;
+      if (discoverLink && link.dataset.href) discoverLink.href = link.dataset.href;
+    });
   });
 
-  /* ── Hero image ken burns ───────────────────────── */
-  const heroImg = document.getElementById('hero-img');
-  if (heroImg) {
-    const trigger = () => heroImg.classList.add('loaded');
-    heroImg.complete ? trigger() : heroImg.addEventListener('load', trigger);
+  /* ── Hero Slideshow ─────────────────────────────── */
+  const slides = document.querySelectorAll('.hero-slide');
+  const dots = document.querySelectorAll('.hero-dot');
+  const prevBtn = document.getElementById('hero-prev');
+  const nextBtn = document.getElementById('hero-next');
+  let currentSlide = 0;
+  let slideTimer = null;
+
+  const goToSlide = (n) => {
+    slides[currentSlide].classList.remove('active');
+    dots[currentSlide].classList.remove('active');
+    currentSlide = (n + slides.length) % slides.length;
+    slides[currentSlide].classList.add('active');
+    dots[currentSlide].classList.add('active');
+  };
+
+  const startAutoplay = () => {
+    clearInterval(slideTimer);
+    slideTimer = setInterval(() => goToSlide(currentSlide + 1), 5000);
+  };
+
+  if (slides.length > 0) {
+    dots.forEach((dot, i) => {
+      dot.addEventListener('click', () => { goToSlide(i); startAutoplay(); });
+    });
+    if (prevBtn) prevBtn.addEventListener('click', () => { goToSlide(currentSlide - 1); startAutoplay(); });
+    if (nextBtn) nextBtn.addEventListener('click', () => { goToSlide(currentSlide + 1); startAutoplay(); });
+    startAutoplay();
   }
 
   /* ── Mobile menu ────────────────────────────────── */
@@ -67,32 +89,32 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ── Collections horizontal scroll ─────────────── */
-  const track = document.getElementById('collections-track');
-  const prevBtn = document.getElementById('scroll-prev');
-  const nextBtn = document.getElementById('scroll-next');
+  const colTrack = document.getElementById('collections-track');
+  const colPrev = document.getElementById('scroll-prev');
+  const colNext = document.getElementById('scroll-next');
 
-  if (track && prevBtn && nextBtn) {
+  if (colTrack && colPrev && colNext) {
     const CARD_W = 382;
-    nextBtn.addEventListener('click', () => track.scrollBy({ left: CARD_W, behavior: 'smooth' }));
-    prevBtn.addEventListener('click', () => track.scrollBy({ left: -CARD_W, behavior: 'smooth' }));
+    colNext.addEventListener('click', () => colTrack.scrollBy({ left: CARD_W, behavior: 'smooth' }));
+    colPrev.addEventListener('click', () => colTrack.scrollBy({ left: -CARD_W, behavior: 'smooth' }));
 
     let isDown = false, startX = 0, scrollLeft = 0;
-    track.addEventListener('mousedown', e => {
-      isDown = true; track.style.cursor = 'grabbing';
-      startX = e.pageX - track.offsetLeft; scrollLeft = track.scrollLeft;
+    colTrack.addEventListener('mousedown', e => {
+      isDown = true; colTrack.style.cursor = 'grabbing';
+      startX = e.pageX - colTrack.offsetLeft; scrollLeft = colTrack.scrollLeft;
     });
-    track.addEventListener('mouseleave', () => { isDown = false; track.style.cursor = 'grab'; });
-    track.addEventListener('mouseup', () => { isDown = false; track.style.cursor = 'grab'; });
-    track.addEventListener('mousemove', e => {
+    colTrack.addEventListener('mouseleave', () => { isDown = false; colTrack.style.cursor = 'grab'; });
+    colTrack.addEventListener('mouseup', () => { isDown = false; colTrack.style.cursor = 'grab'; });
+    colTrack.addEventListener('mousemove', e => {
       if (!isDown) return; e.preventDefault();
-      track.scrollLeft = scrollLeft - (e.pageX - track.offsetLeft - startX) * 1.2;
+      colTrack.scrollLeft = scrollLeft - (e.pageX - colTrack.offsetLeft - startX) * 1.2;
     });
 
     const updateArrows = () => {
-      prevBtn.style.opacity = track.scrollLeft <= 10 ? '0.4' : '1';
-      nextBtn.style.opacity = track.scrollLeft >= track.scrollWidth - track.clientWidth - 10 ? '0.4' : '1';
+      colPrev.style.opacity = colTrack.scrollLeft <= 10 ? '0.4' : '1';
+      colNext.style.opacity = colTrack.scrollLeft >= colTrack.scrollWidth - colTrack.clientWidth - 10 ? '0.4' : '1';
     };
-    track.addEventListener('scroll', updateArrows, { passive: true });
+    colTrack.addEventListener('scroll', updateArrows, { passive: true });
     updateArrows();
   }
 
