@@ -53,10 +53,30 @@
      1. HERO
 ════════════════════════════════════════════ -->
 <section class="hero" id="hero">
-  <div class="hero-img-wrap">
-    <img src="hero-light.png" alt="Lagna Vastra — editorial groom" class="hero-img" id="hero-img"/>
-    <div class="hero-img-veil"></div>
+  <!-- Slideshow backgrounds -->
+  <div class="hero-slides" id="ll-slides">
+    <div class="hero-slide active" style="background-image:url('img-sherwani-1.jpg')"></div>
+    <div class="hero-slide" style="background-image:url('img-indo-1.jpg')"></div>
+    <div class="hero-slide" style="background-image:url('img-jodhpuri-1.jpg')"></div>
+    <div class="hero-slide" style="background-image:url('img-waistcoat-1.jpg')"></div>
+    <div class="hero-slide" style="background-image:url('img-kurta-1.jpg')"></div>
+    <div class="hero-slide" style="background-image:url('img-suit-1.jpg')"></div>
   </div>
+  <div class="hero-img-veil"></div>
+
+  <!-- Slide dots -->
+  <div class="hero-dots" id="ll-dots">
+    <button class="hero-dot active" data-slide="0" aria-label="Slide 1"></button>
+    <button class="hero-dot" data-slide="1" aria-label="Slide 2"></button>
+    <button class="hero-dot" data-slide="2" aria-label="Slide 3"></button>
+    <button class="hero-dot" data-slide="3" aria-label="Slide 4"></button>
+    <button class="hero-dot" data-slide="4" aria-label="Slide 5"></button>
+    <button class="hero-dot" data-slide="5" aria-label="Slide 6"></button>
+  </div>
+
+  <!-- Prev / Next arrows -->
+  <button class="hero-arr hero-arr-prev" id="ll-prev" aria-label="Previous slide">&#8592;</button>
+  <button class="hero-arr hero-arr-next" id="ll-next" aria-label="Next slide">&#8594;</button>
 
   <div class="hero-frame-tl" aria-hidden="true"></div>
   <div class="hero-frame-br" aria-hidden="true"></div>

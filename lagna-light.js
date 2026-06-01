@@ -7,18 +7,41 @@ document.addEventListener('DOMContentLoaded', () => {
     nav.classList.toggle('stuck', window.scrollY > 60);
   }, { passive: true });
 
-  /* ── Hero Ken Burns ─────────────────────────────── */
-  const heroWrap = document.querySelector('.hero-img-wrap');
-  if (heroWrap) setTimeout(() => heroWrap.classList.add('zoomed'), 100);
+  /* ── Hero Slideshow ─────────────────────────────── */
+  const llSlides  = document.querySelectorAll('#ll-slides .hero-slide');
+  const llDots    = document.querySelectorAll('#ll-dots .hero-dot');
+  const llPrev    = document.getElementById('ll-prev');
+  const llNext    = document.getElementById('ll-next');
+  let llCurrent   = 0;
+  let llTimer     = null;
 
-  /* ── Hero Parallax ──────────────────────────────── */
-  const heroEl = document.getElementById('hero');
-  window.addEventListener('scroll', () => {
-    const y = window.scrollY;
-    if (heroWrap && y < window.innerHeight) {
-      heroWrap.style.transform = `translateY(${y * 0.14}px) scale(1)`;
+  function llGoTo(idx) {
+    llSlides[llCurrent].classList.remove('active');
+    llDots[llCurrent].classList.remove('active');
+    llCurrent = (idx + llSlides.length) % llSlides.length;
+    llSlides[llCurrent].classList.add('active');
+    llDots[llCurrent].classList.add('active');
+  }
+
+  function llStart() {
+    llTimer = setInterval(() => llGoTo(llCurrent + 1), 5000);
+  }
+  function llStop() { clearInterval(llTimer); }
+
+  if (llSlides.length) {
+    llDots.forEach(dot => dot.addEventListener('click', () => {
+      llStop(); llGoTo(+dot.dataset.slide); llStart();
+    }));
+    if (llPrev) llPrev.addEventListener('click', () => { llStop(); llGoTo(llCurrent - 1); llStart(); });
+    if (llNext) llNext.addEventListener('click', () => { llStop(); llGoTo(llCurrent + 1); llStart(); });
+
+    const heroSection = document.getElementById('hero');
+    if (heroSection) {
+      heroSection.addEventListener('mouseenter', llStop);
+      heroSection.addEventListener('mouseleave', llStart);
     }
-  }, { passive: true });
+    llStart();
+  }
 
   /* ── Mobile Burger ──────────────────────────────── */
   const burger = document.getElementById('burger');

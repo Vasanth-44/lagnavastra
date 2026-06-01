@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, { passive: true });
   }
 
-  /* ── Mega menu positioning ──────────────────────── */
+  /* ── Mega menu — hover + click support ─────────── */
   const positionMegaMenus = () => {
     if (!siteHeader) return;
     const bottom = siteHeader.getBoundingClientRect().bottom;
@@ -25,6 +25,34 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('scroll', positionMegaMenus, { passive: true });
   window.addEventListener('resize', positionMegaMenus);
 
+  // Click to toggle mega menu (mobile + desktop)
+  document.querySelectorAll('.hn-item').forEach(item => {
+    const link = item.querySelector('.hn-has-arrow');
+    const menu = item.querySelector('.mega-menu');
+    if (!link || !menu) return;
+
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const isOpen = menu.classList.contains('open');
+      // Close all others
+      document.querySelectorAll('.mega-menu.open').forEach(m => m.classList.remove('open'));
+      document.querySelectorAll('.hn-item.menu-open').forEach(i => i.classList.remove('menu-open'));
+      if (!isOpen) {
+        menu.classList.add('open');
+        item.classList.add('menu-open');
+        positionMegaMenus();
+      }
+    });
+  });
+
+  // Close mega menu when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.hn-item')) {
+      document.querySelectorAll('.mega-menu.open').forEach(m => m.classList.remove('open'));
+      document.querySelectorAll('.hn-item.menu-open').forEach(i => i.classList.remove('menu-open'));
+    }
+  });
+
   /* ── Collections mega menu image preview ────────── */
   document.querySelectorAll('.mega-link[data-preview]').forEach(link => {
     link.addEventListener('mouseenter', () => {
@@ -35,34 +63,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  /* ── Hero Slideshow ─────────────────────────────── */
-  const slides = document.querySelectorAll('.hero-slide');
-  const dots = document.querySelectorAll('.hero-dot');
-  const prevBtn = document.getElementById('hero-prev');
-  const nextBtn = document.getElementById('hero-next');
-  let currentSlide = 0;
-  let slideTimer = null;
+  /* ── Hero Video — Mute toggle ───────────────────── */
+  const heroVideo   = document.querySelector('.hero-video');
+  const muteBtn     = document.getElementById('hero-mute-btn');
+  const iconMuted   = muteBtn?.querySelector('.icon-muted');
+  const iconUnmuted = muteBtn?.querySelector('.icon-unmuted');
 
-  const goToSlide = (n) => {
-    slides[currentSlide].classList.remove('active');
-    dots[currentSlide].classList.remove('active');
-    currentSlide = (n + slides.length) % slides.length;
-    slides[currentSlide].classList.add('active');
-    dots[currentSlide].classList.add('active');
-  };
-
-  const startAutoplay = () => {
-    clearInterval(slideTimer);
-    slideTimer = setInterval(() => goToSlide(currentSlide + 1), 5000);
-  };
-
-  if (slides.length > 0) {
-    dots.forEach((dot, i) => {
-      dot.addEventListener('click', () => { goToSlide(i); startAutoplay(); });
+  if (heroVideo && muteBtn) {
+    muteBtn.addEventListener('click', () => {
+      heroVideo.muted = !heroVideo.muted;
+      iconMuted.style.display   = heroVideo.muted ? '' : 'none';
+      iconUnmuted.style.display = heroVideo.muted ? 'none' : '';
     });
-    if (prevBtn) prevBtn.addEventListener('click', () => { goToSlide(currentSlide - 1); startAutoplay(); });
-    if (nextBtn) nextBtn.addEventListener('click', () => { goToSlide(currentSlide + 1); startAutoplay(); });
-    startAutoplay();
   }
 
   /* ── Mobile menu ────────────────────────────────── */
@@ -145,28 +157,119 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  /* ── Stat counter ───────────────────────────────── */
-  const statMap = { '500+': [500, '+'], '100%': [100, '%'], '12+': [12, '+'] };
-  const countObserver = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (!entry.isIntersecting) return;
-      const el = entry.target;
-      const raw = el.textContent.trim();
-      const cfg = statMap[raw];
-      if (!cfg) return;
-      let cur = 0;
-      const [end, suffix] = cfg;
-      const step = end / 60;
-      const tick = () => {
-        cur = Math.min(cur + step, end);
-        el.textContent = Math.floor(cur) + suffix;
-        if (cur < end) requestAnimationFrame(tick);
-      };
-      tick();
-      countObserver.unobserve(el);
+  /* ── Image Stack + Review nav — synced ──────────── */
+  const imgStack   = document.getElementById('testi-img-stack');
+  const reviewItems = document.querySelectorAll('.testi-review-item');
+  const trnPrev    = document.getElementById('trn-prev');
+  const trnNext    = document.getElementById('trn-next');
+  const trnCounter = document.getElementById('trn-counter');
+  const total      = reviewItems.length;
+  let   current    = 0;
+  let   animating  = false;
+  let   autoTimer  = null;
+
+  // Update the review text panel
+  const showReview = (idx) => {
+    reviewItems.forEach(r => r.classList.remove('active'));
+    reviewItems[idx].classList.add('active');
+    if (trnCounter) trnCounter.textContent = `${idx + 1} / ${total}`;
+  };
+
+  // Re-apply depth (data-si) based on current order of DOM children
+  const reapplyDepth = () => {
+    const cards = imgStack ? Array.from(imgStack.querySelectorAll('.tsi-card')) : [];
+    // last card in DOM = top of visual stack (si=0)
+    cards.forEach((card, i) => {
+      card.dataset.si = cards.length - 1 - i;
     });
-  }, { threshold: 0.5 });
-  document.querySelectorAll('.stat-n').forEach(el => countObserver.observe(el));
+  };
+
+  // Slide the top card out to the right, then move it to the bottom
+  const slideNext = () => {
+    if (!imgStack || animating) return;
+    const cards = Array.from(imgStack.querySelectorAll('.tsi-card'));
+    const topCard = cards[cards.length - 1]; // last in DOM = visually on top
+    if (!topCard) return;
+
+    animating = true;
+    topCard.classList.add('slide-out');
+
+    setTimeout(() => {
+      topCard.classList.remove('slide-out');
+      topCard.classList.add('no-transition');
+      // Move to bottom of stack (first in DOM)
+      imgStack.insertBefore(topCard, imgStack.firstChild);
+      reapplyDepth();
+      // Force reflow, then remove no-transition
+      void topCard.offsetWidth;
+      topCard.classList.remove('no-transition');
+      animating = false;
+    }, 550);
+  };
+
+  // Slide the bottom card back to the top (prev direction)
+  const slidePrev = () => {
+    if (!imgStack || animating) return;
+    const cards = Array.from(imgStack.querySelectorAll('.tsi-card'));
+    const bottomCard = cards[0]; // first in DOM = visually at bottom
+    if (!bottomCard) return;
+
+    animating = true;
+    // Instantly move it to top position (no animation), then let it settle
+    bottomCard.classList.add('no-transition');
+    bottomCard.style.transform = 'translateX(-130%) rotate(-12deg)';
+    bottomCard.style.opacity   = '0';
+    bottomCard.style.zIndex    = '10';
+    imgStack.appendChild(bottomCard); // move to end of DOM = top of stack
+    reapplyDepth();
+    void bottomCard.offsetWidth;
+    bottomCard.classList.remove('no-transition');
+    bottomCard.style.transform = '';
+    bottomCard.style.opacity   = '';
+    bottomCard.style.zIndex    = '';
+    animating = false;
+  };
+
+  const startAuto = () => {
+    clearInterval(autoTimer);
+    autoTimer = setInterval(() => {
+      current = (current + 1) % total;
+      slideNext();
+      showReview(current);
+    }, 4000);
+  };
+
+  if (imgStack && reviewItems.length) {
+    reapplyDepth();
+    showReview(0);
+
+    // Click top card = next
+    imgStack.addEventListener('click', () => {
+      clearInterval(autoTimer);
+      current = (current + 1) % total;
+      slideNext();
+      showReview(current);
+      startAuto();
+    });
+
+    // Nav buttons
+    if (trnNext) trnNext.addEventListener('click', () => {
+      clearInterval(autoTimer);
+      current = (current + 1) % total;
+      slideNext();
+      showReview(current);
+      startAuto();
+    });
+    if (trnPrev) trnPrev.addEventListener('click', () => {
+      clearInterval(autoTimer);
+      current = (current - 1 + total) % total;
+      slidePrev();
+      showReview(current);
+      startAuto();
+    });
+
+    startAuto();
+  }
 
   /* ── "Complete Your Look" popup ─────────────────── */
   const popup = document.getElementById('cyl-popup');
@@ -177,11 +280,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (popup) {
     const cylData = {
-      indo: { title: 'Complete the Indo-Western Look', body: 'Complete the Silhouette with the Regal Footwear Suite — Handcrafted Loafers recommended for the Avant-Garde Ensemble.', link: '#footwear' },
-      sherwani: { title: 'Complete the Sherwani Look', body: 'Elevate the Imperial Ensemble with the Royal Pagdi Collective and Imperial Kanduva — both included in the 4-Piece Set.', link: '#pagdi' },
-      bandhgala: { title: 'Complete the Bandhgala Look', body: 'Complete the Sovereign Reception Ensemble with Sleek Mojris from the Regal Footwear Suite.', link: '#footwear' },
-      waistcoat: { title: 'Complete the Waistcoat Look', body: 'Add the Imperial Kanduva as a ceremonial stole to elevate the Festive Co-ord Set.', link: '#kanduva' },
-      kurta: { title: 'Complete the Kurta Look', body: 'Pair the Classic Ritual Set with handcrafted Mojris from the Regal Footwear Suite for a timeless finish.', link: '#footwear' },
+      indo: { title: 'Complete the Indo-Western Look', body: 'Complete the Silhouette with the Regal Footwear Suite — Handcrafted Loafers recommended for the Avant-Garde Ensemble.', link: 'collection-footwear.html' },
+      sherwani: { title: 'Complete the Sherwani Look', body: 'Elevate the Imperial Ensemble with the Royal Pagdi Collective and Royal Jewellery Suite.', link: 'collection-pagdi.html' },
+      bandhgala: { title: 'Complete the Bandhgala Look', body: 'Complete the Sovereign Reception Ensemble with Sleek Mojris from the Regal Footwear Suite.', link: 'collection-footwear.html' },
+      waistcoat: { title: 'Complete the Waistcoat Look', body: 'Add the Royal Jewellery Suite to elevate the Festive Co-ord Set.', link: 'collection-jewellery.html' },
+      kurta: { title: 'Complete the Kurta Look', body: 'Pair the Classic Ritual Set with handcrafted Mojris from the Regal Footwear Suite for a timeless finish.', link: 'collection-footwear.html' },
     };
     let popupTimer = null;
     const showPopup = (key) => {
