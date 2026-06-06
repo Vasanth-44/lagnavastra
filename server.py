@@ -23,6 +23,52 @@ class CleanURLHandler(http.server.SimpleHTTPRequestHandler):
                 
         return super().do_GET()
 
+    def do_POST(self):
+        if self.path == '/api/enquiry':
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length).decode('utf-8')
+            
+            import json
+            import urllib.parse
+            import datetime
+            
+            try:
+                data = dict(urllib.parse.parse_qsl(post_data))
+            except Exception:
+                try:
+                    data = json.loads(post_data)
+                except Exception:
+                    data = {"raw": post_data}
+            
+            # Save to enquiries.json
+            json_file = 'enquiries.json'
+            enquiries = []
+            if os.path.exists(json_file):
+                try:
+                    with open(json_file, 'r', encoding='utf-8') as f:
+                        enquiries = json.load(f)
+                except Exception:
+                    pass
+            
+            data['timestamp'] = str(datetime.datetime.now())
+            enquiries.append(data)
+            
+            with open(json_file, 'w', encoding='utf-8') as f:
+                json.dump(enquiries, f, indent=2, ensure_ascii=False)
+            
+            # Log to stdout so the developer sees the console printout
+            print(f"\n[LOCAL ENQUIRY RECEIVED]: {data}\n", flush=True)
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "success", "message": "Enquiry saved locally!"}).encode('utf-8'))
+            return
+            
+        self.send_response(404)
+        self.end_headers()
+
 class DualStackHTTPServer(http.server.HTTPServer):
     address_family = socket.AF_INET6
     def server_bind(self):

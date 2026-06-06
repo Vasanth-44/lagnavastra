@@ -2,6 +2,7 @@ import { PortableText, type SanityDocument } from "next-sanity";
 import { createImageUrlBuilder, type SanityImageSource } from "@sanity/image-url";
 import { client } from "@/sanity/client";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 const POST_QUERY = `*[_type == "post" && slug.current == $slug][0]`;
 
@@ -13,12 +14,29 @@ const urlFor = (source: SanityImageSource) =>
 
 const options = { next: { revalidate: 30 } };
 
+export async function generateStaticParams() {
+  const posts = await client.fetch<SanityDocument[]>(
+    `*[_type == "post" && defined(slug.current)]{ "slug": slug.current }`,
+    {},
+    { next: { revalidate: 60 } }
+  );
+
+  return posts.map((post) => ({
+    slug: post.slug,
+  }));
+}
+
 export default async function PostPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const post = await client.fetch<SanityDocument>(POST_QUERY, await params, options);
+
+  if (!post) {
+    notFound();
+  }
+
   const postImageUrl = post.image
     ? urlFor(post.image)?.width(550).height(310).url()
     : null;
@@ -46,3 +64,4 @@ export default async function PostPage({
     </main>
   );
 }
+

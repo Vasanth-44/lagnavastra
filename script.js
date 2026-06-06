@@ -87,17 +87,29 @@ document.addEventListener('DOMContentLoaded', () => {
       hamburger.classList.add('open');
       mobileMenu.classList.add('open');
       document.body.style.overflow = 'hidden';
+      if (window.history.state !== 'menu-open') {
+        window.history.pushState('menu-open', '');
+      }
     };
-    const closeMenu = () => {
+    const closeMenu = (fromPopstate = false) => {
       hamburger.classList.remove('open');
       mobileMenu.classList.remove('open');
       document.body.style.overflow = '';
+      if (!fromPopstate && window.history.state === 'menu-open') {
+        window.history.back();
+      }
     };
     hamburger.addEventListener('click', () => {
-      mobileMenu.classList.contains('open') ? closeMenu() : openMenu();
+      mobileMenu.classList.contains('open') ? closeMenu(false) : openMenu();
     });
-    if (mobileClose) mobileClose.addEventListener('click', closeMenu);
-    document.querySelectorAll('.mobile-link').forEach(l => l.addEventListener('click', closeMenu));
+    if (mobileClose) mobileClose.addEventListener('click', () => closeMenu(false));
+    document.querySelectorAll('.mobile-link').forEach(l => l.addEventListener('click', () => closeMenu(false)));
+
+    window.addEventListener('popstate', () => {
+      if (mobileMenu.classList.contains('open')) {
+        closeMenu(true);
+      }
+    });
   }
 
   /* ── Collections horizontal scroll ─────────────── */
@@ -308,19 +320,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.ens-card').forEach(c => ensObserver.observe(c));
   }
 
-  /* ── Contact form ───────────────────────────────── */
-  const form = document.getElementById('contact-form');
-  if (form) {
-    form.addEventListener('submit', e => {
-      e.preventDefault();
-      const btn = form.querySelector('.form-submit');
-      const orig = btn.textContent;
-      btn.textContent = 'Enquiry Sent ✓';
-      btn.style.background = '#5a8a5a';
-      btn.disabled = true;
-      setTimeout(() => { btn.textContent = orig; btn.style.background = ''; btn.disabled = false; form.reset(); }, 4000);
-    });
-  }
+  /* ── Contact form — Handled in appointment-form.js ── */
+
 
   /* ── Smooth anchor scroll ───────────────────────── */
   document.querySelectorAll('a[href^="#"]').forEach(a => {
