@@ -169,22 +169,23 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  /* ── Image Stack + Review nav — synced ──────────── */
+  /* ── Image Stack + Review nav — decoupled ───────── */
   const imgStack   = document.getElementById('testi-img-stack');
   const reviewItems = document.querySelectorAll('.testi-review-item');
   const trnPrev    = document.getElementById('trn-prev');
   const trnNext    = document.getElementById('trn-next');
   const trnCounter = document.getElementById('trn-counter');
-  const total      = reviewItems.length;
-  let   current    = 0;
-  let   animating  = false;
-  let   autoTimer  = null;
+  const totalReviews = reviewItems.length;
+  let   currentReviewIdx = 0;
+  let   imgAnimating  = false;
+  let   imgTimer      = null;
+  let   reviewTimer   = null;
 
   // Update the review text panel
   const showReview = (idx) => {
     reviewItems.forEach(r => r.classList.remove('active'));
     reviewItems[idx].classList.add('active');
-    if (trnCounter) trnCounter.textContent = `${idx + 1} / ${total}`;
+    if (trnCounter) trnCounter.textContent = `${idx + 1} / ${totalReviews}`;
   };
 
   // Re-apply depth (data-si) based on current order of DOM children
@@ -198,12 +199,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Slide the top card out to the right, then move it to the bottom
   const slideNext = () => {
-    if (!imgStack || animating) return;
+    if (!imgStack || imgAnimating) return;
     const cards = Array.from(imgStack.querySelectorAll('.tsi-card'));
     const topCard = cards[cards.length - 1]; // last in DOM = visually on top
     if (!topCard) return;
 
-    animating = true;
+    imgAnimating = true;
     topCard.classList.add('slide-out');
 
     setTimeout(() => {
@@ -215,18 +216,18 @@ document.addEventListener('DOMContentLoaded', () => {
       // Force reflow, then remove no-transition
       void topCard.offsetWidth;
       topCard.classList.remove('no-transition');
-      animating = false;
+      imgAnimating = false;
     }, 550);
   };
 
   // Slide the bottom card back to the top (prev direction)
   const slidePrev = () => {
-    if (!imgStack || animating) return;
+    if (!imgStack || imgAnimating) return;
     const cards = Array.from(imgStack.querySelectorAll('.tsi-card'));
     const bottomCard = cards[0]; // first in DOM = visually at bottom
     if (!bottomCard) return;
 
-    animating = true;
+    imgAnimating = true;
     // Instantly move it to top position (no animation), then let it settle
     bottomCard.classList.add('no-transition');
     bottomCard.style.transform = 'translateX(-130%) rotate(-12deg)';
@@ -239,48 +240,50 @@ document.addEventListener('DOMContentLoaded', () => {
     bottomCard.style.transform = '';
     bottomCard.style.opacity   = '';
     bottomCard.style.zIndex    = '';
-    animating = false;
+    imgAnimating = false;
   };
 
-  const startAuto = () => {
-    clearInterval(autoTimer);
-    autoTimer = setInterval(() => {
-      current = (current + 1) % total;
+  // Autoplay for Images Slideshow (every 4.5 seconds)
+  const startImgAuto = () => {
+    clearInterval(imgTimer);
+    imgTimer = setInterval(() => {
       slideNext();
-      showReview(current);
-    }, 4000);
+    }, 4500);
+  };
+
+  // Autoplay for Reviews text (every 6 seconds)
+  const startReviewAuto = () => {
+    clearInterval(reviewTimer);
+    reviewTimer = setInterval(() => {
+      currentReviewIdx = (currentReviewIdx + 1) % totalReviews;
+      showReview(currentReviewIdx);
+    }, 6000);
   };
 
   if (imgStack && reviewItems.length) {
     reapplyDepth();
     showReview(0);
 
-    // Click top card = next
+    // Clicking on the image stack only advances the image slideshow
     imgStack.addEventListener('click', () => {
-      clearInterval(autoTimer);
-      current = (current + 1) % total;
       slideNext();
-      showReview(current);
-      startAuto();
+      startImgAuto(); // Reset image autoplay timer
     });
 
-    // Nav buttons
+    // Navigation buttons only control the review text
     if (trnNext) trnNext.addEventListener('click', () => {
-      clearInterval(autoTimer);
-      current = (current + 1) % total;
-      slideNext();
-      showReview(current);
-      startAuto();
+      currentReviewIdx = (currentReviewIdx + 1) % totalReviews;
+      showReview(currentReviewIdx);
+      startReviewAuto(); // Reset review autoplay timer
     });
     if (trnPrev) trnPrev.addEventListener('click', () => {
-      clearInterval(autoTimer);
-      current = (current - 1 + total) % total;
-      slidePrev();
-      showReview(current);
-      startAuto();
+      currentReviewIdx = (currentReviewIdx - 1 + totalReviews) % totalReviews;
+      showReview(currentReviewIdx);
+      startReviewAuto(); // Reset review autoplay timer
     });
 
-    startAuto();
+    startImgAuto();
+    startReviewAuto();
   }
 
   /* ── "Complete Your Look" popup ─────────────────── */
