@@ -167,7 +167,7 @@
         });
 
         // Since no-cors returns an opaque response, we assume success if fetch finishes without throwing
-        handleSuccess();
+        handleSuccess(formData);
 
       } catch (error) {
         console.error('Lagna Vastra form submission failed:', error);
@@ -176,7 +176,7 @@
     });
 
     // Reusable Success Handler
-    function handleSuccess() {
+    function handleSuccess(data) {
       // 1. Show success message
       showNotification('Thank you for your inquiry. Our styling team will contact you shortly.', 'success');
 
@@ -191,7 +191,29 @@
         }, 4000);
       }
 
-      // 3. Reset all form fields
+      // 3. Redirect to WhatsApp with detailed enquiry
+      try {
+        const waNumber = '916302635460';
+        const msg = `Hello Lagna Vastra,
+
+I would like to book a private appointment:
+• Name: ${data.name || ''}
+• Phone: ${data.phone || ''}
+• Email: ${data.email || ''}
+• Ensemble of Interest: ${data.ensemble || 'Not specified'}
+• Wedding Date (approx.): ${data.date || 'Not specified'}
+• Message: ${data.message || 'None'}`;
+
+        const encodedMsg = encodeURIComponent(msg);
+        const waUrl = `https://api.whatsapp.com/send?phone=${waNumber}&text=${encodedMsg}`;
+        
+        // Open WhatsApp in a new tab
+        window.open(waUrl, '_blank');
+      } catch (waErr) {
+        console.error('WhatsApp redirection failed:', waErr);
+      }
+
+      // 4. Reset all form fields
       form.reset();
       Object.keys(fields).forEach(key => clearError(key));
     }
