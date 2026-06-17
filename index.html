@@ -4,6 +4,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: 'unsafe-inline' 'unsafe-eval'; img-src 'self' data: https:; media-src 'self' https:;" />
+  <meta http-equiv="X-Frame-Options" content="DENY" />
   <meta name="description"
     content="Lagna Vastra — The Grandeur Collection. Luxury wedding menswear. Heritage Sherwanis, Indo-Western, Bandhgala, and curated ensembles for the modern Indian groom." />
   <title>Lagna Vastra — The Grandeur Collection</title>
@@ -1091,6 +1093,11 @@
         <h3 class="form-title">Book a Private Appointment</h3>
         <form class="contact-form" id="contact-form" novalidate>
           <div id="form-notification" class="form-notification"></div>
+
+          <!-- Honeypot field for anti-spam (visually hidden) -->
+          <div style="display:none !important; visibility:hidden !important;" aria-hidden="true">
+            <input type="text" id="cf-website" name="website" tabindex="-1" autocomplete="off" placeholder="Leave this blank" />
+          </div>
 
           <div class="form-group" id="group-name">
             <label for="cf-name">Full Name</label>
